@@ -1,0 +1,165 @@
+-- Config blocks allow you to configure, document, and test your data assets.
+config {
+  type: "incremental", // Creates a incremental table in BigQuery.
+  dependencies: ["DECODE_URI_COMPONENT"],
+//  uniqueKey: ['date', 'session_id'],
+  bigquery: {
+    partitionBy: 'date',
+//    updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
+  },
+  tags: ['base', 'attribution'],
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+}
+
+
+pre_operations {
+-- 
+CREATE TEMPORARY TABLE temp_new_events AS
+  SELECT
+    ${helpers.getDate()},
+    -- unique session id
+    ${helpers.getSessionId()},
+    user_pseudo_id,
+    ${helpers.getEventParam('ga_session_id', 'int', true, 'session_start')},
+    -- wrap all traffic source dimensions into a struct for the next step
+    (SELECT AS STRUCT              
+      IF(COALESCE(collected_traffic_source.gclid, collected_traffic_source.dclid,collected_traffic_source.srsltid) IS NOT NULL, 'google', collected_traffic_source.manual_source) AS source,
+      IF(COALESCE(collected_traffic_source.gclid, collected_traffic_source.dclid,collected_traffic_source.srsltid) IS NOT NULL, 'cpc', collected_traffic_source.manual_medium) AS medium,
+      ${ref("DECODE_URI_COMPONENT")}(collected_traffic_source.manual_campaign_name) AS campaign,
+      ${ref("DECODE_URI_COMPONENT")}(collected_traffic_source.manual_campaign_id) AS campaign_id,
+      ${ref("DECODE_URI_COMPONENT")}(collected_traffic_source.manual_content) AS content,
+      ${ref("DECODE_URI_COMPONENT")}(collected_traffic_source.manual_term) AS term
+    ) AS traffic_source,
+    event_timestamp,
+    COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged
+  FROM
+    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}`
+  WHERE
+      ${ when(incremental(),
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
+  )}
+    _TABLE_SUFFIX NOT LIKE "intraday%"
+    -- AND event_name NOT IN ('session_start', 'first_visit')
+    AND _TABLE_SUFFIX >= "20240101";
+
+CREATE TEMPORARY TABLE temp_legacy_events AS
+  SELECT
+    ${helpers.getDate()},
+    -- unique session id
+    ${helpers.getSessionId()},
+    user_pseudo_id,
+    ${helpers.getEventParam('ga_session_id', 'int', true, 'session_start')},
+    -- wrap all traffic source dimensions into a struct for the next step
+    (SELECT AS STRUCT
+          IF(REGEXP_CONTAINS(${helpers.getEventParam('page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'google',
+            ${helpers.getEventParam('source', 'string', false)}) AS source,
+          IF(REGEXP_CONTAINS(${helpers.getEventParam('page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'cpc',
+            ${helpers.getEventParam('medium', 'string', false)}) AS medium,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('campaign', 'string', false)}) AS campaign,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('campaign_id', 'string', false)}) AS campaign_id,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('content', 'string', false)}) AS content,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('term', 'string', false)}) AS term)
+    AS traffic_source,
+    event_timestamp,
+    COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged,
+  FROM
+    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}`
+  WHERE
+      ${ when(incremental(),
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
+  )}
+    _TABLE_SUFFIX NOT LIKE "intraday%"
+    AND event_name NOT IN ('session_start', 'first_visit')
+    AND _TABLE_SUFFIX < "20240101";
+
+${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
+}
+
+
+post_operations {
+  -- Removing Temporary tables after main execution
+  DROP TABLE temp_new_events;
+  DROP TABLE temp_legacy_events;
+}
+
+
+
+
+WITH events_0 AS (
+  SELECT * FROM temp_new_events
+  UNION ALL
+  SELECT * FROM temp_legacy_events
+),
+events AS (
+  SELECT
+  date, session_id, user_pseudo_id, session_start, event_timestamp, session_engaged,
+  STRUCT(
+    IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(direct)", traffic_source.source) AS source,
+    IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(none)", traffic_source.medium) AS medium,
+    CONCAT(
+      IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(direct)", traffic_source.source), " / ",
+      IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(none)", traffic_source.medium)
+    ) AS source_medium,
+    traffic_source.campaign, 
+    traffic_source.campaign_id, 
+    traffic_source.content,
+    traffic_source.term
+  ) AS traffic_source
+  FROM events_0
+)
+
+SELECT
+  MIN(date) as date,
+  session_id,
+  user_pseudo_id,
+  session_start,
+  -- the traffic source of the first event in the session with session_start and first_visit excluded
+  ARRAY_AGG(
+    IF(
+      COALESCE(
+        traffic_source.source,
+        traffic_source.medium,
+        traffic_source.source_medium,
+        traffic_source.campaign,
+        traffic_source.campaign_id,
+        traffic_source.content,
+        traffic_source.term
+        ) IS NOT NULL,
+      traffic_source,
+      null
+    )
+    ORDER BY
+      event_timestamp asc
+    LIMIT
+      1
+  ) [SAFE_OFFSET(0)] as session_first_traffic_source,
+  -- the last not null traffic source of the session
+  ARRAY_AGG(
+    IF(
+      COALESCE(
+        traffic_source.source,
+        traffic_source.medium,
+        traffic_source.source_medium,
+        traffic_source.campaign,
+        traffic_source.campaign_id,
+        traffic_source.content,
+        traffic_source.term
+        ) IS NOT NULL,
+      traffic_source,
+      NULL
+    ) IGNORE NULLS
+    ORDER BY
+      event_timestamp DESC
+    limit
+      1
+  ) [SAFE_OFFSET(0)] as session_last_traffic_source
+FROM
+  events
+WHERE
+  session_id IS NOT NULL
+GROUP BY
+  session_id,
+  user_pseudo_id,
+  session_start

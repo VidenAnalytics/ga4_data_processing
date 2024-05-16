@@ -1,0 +1,37 @@
+config {
+  type: "incremental", // Creates a view in BigQuery. Try changing to "table" instead.
+//  uniqueKey: ['date', 'session_id'],
+  bigquery: {
+    partitionBy: 'date',
+//    updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
+  },
+  tags: ['base', 'attribution'],
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+}
+
+pre_operations {
+  ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
+}
+
+SELECT * FROM (
+  SELECT
+    date,
+    session_id,
+    user_pseudo_id,
+    session_start,
+    session_first_traffic_source,
+    session_last_traffic_source,
+    IFNULL(
+      session_first_traffic_source,
+      last_value(session_last_traffic_source ignore nulls) over(
+        partition by user_pseudo_id
+        ORDER BY
+          session_start range between ${constants.ATTRIBUTION_LOOKBACK_WINDOW *24*60*60} preceding -- (30 * 24 * 60 *60)
+          and current row # ${constants.ATTRIBUTION_LOOKBACK_WINDOW} day lookback
+      )
+    ) as session_traffic_source_last_non_direct,
+  FROM
+    ${ref(`session_level_source`)}
+  ${ when(incremental(), `WHERE date >= DATE_SUB(DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY), INTERVAL (${constants.ATTRIBUTION_LOOKBACK_WINDOW} + 2) DAY)`)}
+)
+${ when(incremental(), `WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}

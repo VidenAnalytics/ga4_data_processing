@@ -1,0 +1,40 @@
+config {
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`,
+  type: "incremental",
+  bigquery: {
+    partitionBy: 'date'
+  },
+  tags: ['events', 'base'],
+}
+
+pre_operations {
+    ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
+}
+
+SELECT
+  ${helpers.getDate()},
+  FARM_FINGERPRINT(
+  CONCAT(
+    s.session_id,
+    event_timestamp,
+    event_name
+  )) event_id,
+  event_name,
+  ${when(constants.EVENT_PARAMS.length),
+  helpers.getEventParams(constants.EVENT_PARAMS) + ','}
+  COALESCE(
+    CAST(${helpers.getEventParam('value', 'int', false)} AS FLOAT64),
+    CAST(${helpers.getEventParam('value', 'float', false)} AS FLOAT64),
+    CAST(${helpers.getEventParam('value', 'double', false)} AS FLOAT64)
+  ) AS value,
+   s.* EXCEPT(date)
+FROM
+  `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}` AS e
+LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+WHERE
+  ${ when(incremental(),
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
+  )}
+  _TABLE_SUFFIX NOT LIKE "intraday%"
+

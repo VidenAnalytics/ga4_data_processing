@@ -1,0 +1,19 @@
+config {
+  type: "operations",
+  hasOutput: true,
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`,
+  name: "DECODE_URI_COMPONENT",
+  tags: ['base', 'attribution'],
+}
+
+
+CREATE FUNCTION IF NOT EXISTS ${self()} (path STRING)
+RETURNS STRING
+LANGUAGE js AS """
+if (path == null) return null;
+try {
+  return decodeURIComponent(path);
+} catch (e) {
+  return path;
+}
+""";

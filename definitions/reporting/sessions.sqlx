@@ -1,0 +1,174 @@
+config {
+  type: "incremental", // Creates a incremental table in BigQuery.
+//   uniqueKey: ['date', 'session_id'],
+  bigquery: {
+    partitionBy: 'date',
+    updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
+  },
+  tags: ['sessions', 'base'],
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+}
+
+pre_operations {
+    ${ when(incremental(),
+    `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`
+  )}
+}
+
+
+WITH stage_1 AS (
+SELECT
+  PARSE_DATE("%Y%m%d", event_date) AS date,
+  CONCAT(user_pseudo_id, '-', IFNULL(${helpers.getEventParam('ga_session_id', 'int', false)}, 0)) AS session_id,
+  user_pseudo_id,
+  event_name,
+  event_timestamp,
+  ${helpers.getEventParam('ga_session_number', 'int', true)},
+  ${helpers.getEventParam('engagement_time_msec', 'int', true)},
+  is_active_user,
+  IF(event_name='user_engagement', 1, 0) user_engagement,
+  ${helpers.getEventParam('session_engaged', 'string', true)},
+  IF(event_name='page_view', ${helpers.getEventParam('page_location', 'string', false)}, null) page_view_location,
+  STRUCT(
+    geo.city,
+    geo.country,
+    geo.continent,
+    geo.region
+  ) AS geo,
+  STRUCT(
+    device.category,
+    device.mobile_brand_name,
+    device.mobile_model_name,
+    device.operating_system,
+    device.operating_system_version,
+    device.language,
+    device.web_info.browser,
+    device.web_info.browser_version
+  ) AS device,
+  device.web_info.hostname,
+  STRUCT(
+    traffic_source.source,
+    traffic_source.medium,
+    traffic_source.name as campaign
+  ) AS first_user,
+  stream_id,
+  platform
+FROM
+    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}`
+WHERE 
+  ${ when(incremental(),
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
+  )}
+    _TABLE_SUFFIX NOT LIKE "intraday%"
+    AND event_name NOT IN ('session_start', 'first_visit')
+),
+stage_2 AS (
+SELECT 
+  date,
+  session_id,
+  user_pseudo_id,
+  user_engagement,
+  SAFE_CAST(session_engaged AS INT64) session_engaged,
+  is_active_user,
+  ga_session_id,
+  ga_session_number,
+  event_timestamp,
+  engagement_time_msec,
+  stream_id,
+  platform,
+  FIRST_VALUE(page_view_location IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) landing_page,
+  LAST_VALUE(page_view_location IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) exit_page,
+  FIRST_VALUE(device) OVER (_window) device,
+  FIRST_VALUE(geo) OVER (_window) geo,
+  FIRST_VALUE(first_user) OVER (_window) first_user
+FROM stage_1
+WINDOW _window AS (PARTITION BY session_id, user_pseudo_id, stream_id ORDER BY event_timestamp)
+),
+stage_3 AS (
+SELECT
+  date,
+  session_id,
+  MAX(ga_session_number) ga_session_number,
+  user_pseudo_id,
+  MAX(is_active_user) is_active_user,
+  MAX(user_engagement) user_engagement,
+  MAX(session_engaged) session_engaged,
+  MIN(event_timestamp) session_start,
+  MAX(event_timestamp) session_end,
+  (MAX(event_timestamp) - MIN(event_timestamp)) / POW(10,6) as session_duration,
+  (SUM(engagement_time_msec) / POW(10,3)) engagement_time_sec,
+  landing_page,
+  SPLIT(landing_page, "?")[SAFE_OFFSET(0)] landing_page_without_query_string,
+  exit_page,
+  SPLIT(exit_page, "?")[SAFE_OFFSET(0)] exit_page_without_query_string,
+  stream_id,
+  platform,
+  geo.city AS geo_city,
+  geo.country AS geo_country,
+  geo.continent AS geo_continent,
+  geo.region AS geo_region,
+  device.category AS device_category,
+  device.mobile_brand_name AS device_mobile_brand_name,
+  device.mobile_model_name AS device_mobile_model_name,
+  device.operating_system AS device_operating_system,
+  device.operating_system_version AS device_operating_system_version,
+  device.language AS device_language,
+  device.browser AS device_browser,
+  device.browser_version AS device_browser_version,
+  first_user.source AS first_user_source,
+  first_user.medium AS first_user_medium,
+  first_user.campaign AS first_user_campaign
+FROM stage_2 GROUP BY ALL
+)
+SELECT
+  s3.date,
+  s3.session_id,
+  s3.ga_session_number,
+  s3.user_pseudo_id,
+  s3.is_active_user,
+  s3.user_engagement,
+  s3.session_engaged,
+  s3.session_start,
+  s3.session_end,
+  s3.session_duration,
+  s3.engagement_time_sec,
+  s3.landing_page,
+  s3.landing_page_without_query_string,
+  s3.exit_page,
+  s3.exit_page_without_query_string,
+  s3.stream_id,
+  s3.platform,
+  STRUCT(
+    s3.geo_city AS city,
+    s3.geo_country AS country,
+    s3.geo_continent AS continent,
+    s3.geo_region AS region
+  ) AS geo,
+  STRUCT(
+    s3.device_category AS category,
+    s3.device_mobile_brand_name AS mobile_brand_name,
+    s3.device_mobile_model_name AS mobile_model_name,
+    s3.device_operating_system AS operating_system,
+    s3.device_operating_system_version AS operating_system_version,
+    s3.device_language AS language,
+    s3.device_browser AS browser,
+    s3.device_browser_version AS browser_version
+  ) AS device,
+  STRUCT(
+    s3.first_user_source AS source,
+    s3.first_user_medium AS medium,
+    s3.first_user_campaign AS campaign
+  ) AS first_user,
+  STRUCT(
+    lndc.session_traffic_source_last_non_direct.source,
+    lndc.session_traffic_source_last_non_direct.medium,
+    lndc.session_traffic_source_last_non_direct.source_medium,
+    lndc.session_traffic_source_last_non_direct.campaign,
+    lndc.session_traffic_source_last_non_direct.campaign_id,
+    lndc.session_traffic_source_last_non_direct.content,
+    lndc.session_traffic_source_last_non_direct.term
+  ) session_last_non_direct
+FROM stage_3 AS s3 LEFT JOIN ${ref('last_non_direct_session_source')} lndc USING (session_id)
+${ when(incremental(), `WHERE lndc.date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}
+
