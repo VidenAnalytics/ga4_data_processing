@@ -1,16 +1,17 @@
 // Source google analytics dataset. "analytics_{GA_PROPERTY_ID}"
-const GA4_DATASCHEMA = 'analytics_12345';
+const GA4_DATASCHEMA = '<GA4_DATASCHEMA>';
 
 // Table prefix. By default = 'events_*'
-const GA4_TABLE_PREFFIX = 'events_*'
+const GA4_TABLE_PREFFIX = '<GA4_TABLE_PREFFIX>'
 
 // Start Date (included), By Default = null, means from the firt export date. Example = `'2023-07-05'`
-const START_DATE = null;
+const START_DATE = <START_DATE>;
 
 
 // Destination dataset. By default = 'analytics_processed_data_{GA_PROPERTY_ID}'
+const GA4_PROCESSED_DATA_PREFFIX = '<GA4_PROCESSED_DATA_PREFIX>'
 const SUFFIX = GA4_DATASCHEMA.split("_")[GA4_DATASCHEMA.split("_").length - 1]
-const GA4_PROCESSED_DATA_DATASCHEMA = SUFFIX.match('^[0-9]+$') ? `analytics_processed_data_${SUFFIX}` : `analytics_processed_data`
+const GA4_PROCESSED_DATA_DATASCHEMA = SUFFIX.match('^[0-9]+$') ? `${GA4_PROCESSED_DATA_PREFFIX}_${SUFFIX}` : `${GA4_PROCESSED_DATA_PREFFIX}`
 
 
 // GA4 data refresh window. Default = 3
@@ -22,7 +23,7 @@ const ATTRIBUTION_LOOKBACK_WINDOW = 30;
 
 
 // Project time zone. Example: const TIME_ZONE = `'America/Los_Angeles'`;
-const TIME_ZONE = `'America/Los_Angeles'`;
+const TIME_ZONE = `'<TIME_ZONE>'`;
 
 
 
