@@ -26,7 +26,7 @@ SELECT
   helpers.getEventParams(constants.EVENT_PARAMS) + ','}
   s.* EXCEPT(date)
 FROM
-  `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}` AS e
+  `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
 LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
 WHERE
   ${ when(incremental(),

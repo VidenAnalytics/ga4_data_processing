@@ -33,7 +33,7 @@ CREATE TEMPORARY TABLE temp_new_events AS
     event_timestamp,
     COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged
   FROM
-    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}`
+    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}`
   WHERE
       ${ when(incremental(),
   `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
@@ -64,7 +64,7 @@ CREATE TEMPORARY TABLE temp_legacy_events AS
     event_timestamp,
     COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged,
   FROM
-    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFFIX || "events_*"}`
+    `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}`
   WHERE
       ${ when(incremental(),
   `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,

@@ -2,16 +2,16 @@
 const GA4_DATASCHEMA = '<GA4_DATASCHEMA>';
 
 // Table prefix. By default = 'events_*'
-const GA4_TABLE_PREFFIX = '<GA4_TABLE_PREFFIX>'
+const GA4_TABLE_PREFIX = '<GA4_TABLE_PREFIX>';
 
 // Start Date (included), By Default = null, means from the firt export date. Example = `'2023-07-05'`
-const START_DATE = <START_DATE>;
+const START_DATE = '<START_DATE>';
 
 
 // Destination dataset. By default = 'analytics_processed_data_{GA_PROPERTY_ID}'
-const GA4_PROCESSED_DATA_PREFFIX = '<GA4_PROCESSED_DATA_PREFIX>'
+const GA4_PROCESSED_DATA_PREFIX = '<GA4_PROCESSED_DATA_PREFIX>'
 const SUFFIX = GA4_DATASCHEMA.split("_")[GA4_DATASCHEMA.split("_").length - 1]
-const GA4_PROCESSED_DATA_DATASCHEMA = SUFFIX.match('^[0-9]+$') ? `${GA4_PROCESSED_DATA_PREFFIX}_${SUFFIX}` : `${GA4_PROCESSED_DATA_PREFFIX}`
+const GA4_PROCESSED_DATA_DATASCHEMA = SUFFIX.match('^[0-9]+$') ? `${GA4_PROCESSED_DATA_PREFIX}_${SUFFIX}` : `${GA4_PROCESSED_DATA_PREFIX}`
 
 
 // GA4 data refresh window. Default = 3
@@ -38,7 +38,7 @@ EVENT_PARAMS = [
 module.exports = {
     GA4_DATASCHEMA,
     TIME_ZONE,
-    GA4_TABLE_PREFFIX,
+    GA4_TABLE_PREFIX,
     REFRESH_LOOKBACK_WINDOW,
     GA4_PROCESSED_DATA_DATASCHEMA,
     ATTRIBUTION_LOOKBACK_WINDOW,
