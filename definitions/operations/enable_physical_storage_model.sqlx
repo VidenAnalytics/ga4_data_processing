@@ -1,0 +1,23 @@
+config {
+  type: "operations",
+  hasOutput: true,
+  dependencies: [ "DECODE_URI_COMPONENT", ]
+}
+
+
+IF
+    (NOT(
+    IFNULL(
+        (SELECT option_value FROM `${dataform.projectConfig.defaultDatabase}.region-${dataform.projectConfig.defaultLocation}.INFORMATION_SCHEMA.SCHEMATA_OPTIONS`
+        WHERE
+            catalog_name = '${dataform.projectConfig.defaultDatabase}'
+            AND schema_name = '${constants.GA4_PROCESSED_DATA_DATASCHEMA}'
+            AND option_name = 'storage_billing_model'), 'NA')
+    ) = 'PHYSICAL')
+    
+THEN
+
+    ALTER SCHEMA IF EXISTS `${dataform.projectConfig.defaultDatabase}.${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+    SET OPTIONS( storage_billing_model = 'PHYSICAL');
+
+END IF;

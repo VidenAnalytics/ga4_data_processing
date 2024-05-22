@@ -2,9 +2,10 @@ config {
   schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`,
   type: "incremental",
   bigquery: {
-    partitionBy: 'date'
+    partitionBy: 'date',
+    clusterBy:['event_name']
   },
-  tags: ['events', 'base'],
+  tags: ['events', 'base', 'ecommerce'],
 }
 
 pre_operations {
@@ -13,6 +14,7 @@ pre_operations {
 
 SELECT
   ${helpers.getDate()},
+  ${helpers.getEventDatetime()},
   FARM_FINGERPRINT(
   CONCAT(
     s.session_id,
@@ -27,6 +29,8 @@ SELECT
     CAST(${helpers.getEventParam('value', 'float', false)} AS FLOAT64),
     CAST(${helpers.getEventParam('value', 'double', false)} AS FLOAT64)
   ) AS value,
+  ${helpers.getEventParam('currency', 'string', true)},
+  e.ecommerce,
    s.* EXCEPT(date)
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e

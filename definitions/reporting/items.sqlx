@@ -4,7 +4,7 @@ config {
   bigquery: {
     partitionBy: 'date'
   },
-  tags: ['ecommerce_events', 'items'],
+  tags: ['items'],
 }
 
 pre_operations {
@@ -13,6 +13,7 @@ pre_operations {
 
 SELECT
   ${helpers.getDate()},
+  ${helpers.getEventDatetime()},
   FARM_FINGERPRINT(
   CONCAT(
     s.session_id,

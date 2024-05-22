@@ -1,7 +1,7 @@
 -- Config blocks allow you to configure, document, and test your data assets.
 config {
   type: "incremental", // Creates a incremental table in BigQuery.
-  dependencies: ["DECODE_URI_COMPONENT"],
+  dependencies: ["enable_physical_storage_model"],
 //  uniqueKey: ['date', 'session_id'],
   bigquery: {
     partitionBy: 'date',
@@ -9,6 +9,7 @@ config {
   },
   tags: ['base', 'attribution'],
   schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+  
 }
 
 

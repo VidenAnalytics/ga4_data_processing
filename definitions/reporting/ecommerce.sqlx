@@ -5,6 +5,7 @@ config {
     partitionBy: 'date'
   },
   tags: ['ecommerce_events', 'ecommerce'],
+  disabled: true /* Disabled. Functional transfered to events table */
 }
 
 pre_operations {

@@ -6,13 +6,14 @@ config {
     updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
   },
   tags: ['sessions', 'base'],
-  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`
+  schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`,
 }
 
 pre_operations {
     ${ when(incremental(),
     `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`
   )}
+
 }
 
 
@@ -71,7 +72,6 @@ SELECT
   user_engagement,
   SAFE_CAST(session_engaged AS INT64) session_engaged,
   is_active_user,
-  ga_session_id,
   ga_session_number,
   event_timestamp,
   engagement_time_msec,
