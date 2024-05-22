@@ -5,7 +5,7 @@ const GA4_DATASCHEMA = '<GA4_DATASCHEMA>';
 const GA4_TABLE_PREFIX = '<GA4_TABLE_PREFIX>';
 
 // Start Date (included), By Default = null, means from the firt export date. Example = `'2023-07-05'`
-const START_DATE = '<START_DATE>';
+const START_DATE = `'<START_DATE>'`;
 
 
 // Destination dataset. By default = 'analytics_processed_data_{GA_PROPERTY_ID}'
