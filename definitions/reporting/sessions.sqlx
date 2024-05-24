@@ -3,7 +3,7 @@ config {
 //   uniqueKey: ['date', 'session_id'],
   bigquery: {
     partitionBy: 'date',
-    updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
+    updatePartitionFilter: `date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`
   },
   tags: ['sessions', 'base'],
   schema: `${constants.GA4_PROCESSED_DATA_DATASCHEMA}`,
@@ -11,7 +11,7 @@ config {
 
 pre_operations {
     ${ when(incremental(),
-    `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`
+    `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`
   )}
 
 }
@@ -58,7 +58,7 @@ FROM
     `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}`
 WHERE 
   ${ when(incremental(),
-  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
     _TABLE_SUFFIX NOT LIKE "intraday%"
@@ -170,5 +170,5 @@ SELECT
     lndc.session_traffic_source_last_non_direct.term
   ) session_last_non_direct
 FROM stage_3 AS s3 LEFT JOIN ${ref('last_non_direct_session_source')} lndc USING (session_id)
-${ when(incremental(), `WHERE lndc.date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}
+${ when(incremental(), `WHERE lndc.date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}
 

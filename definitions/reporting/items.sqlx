@@ -8,12 +8,13 @@ config {
 }
 
 pre_operations {
-    ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
+    ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
 }
 
 SELECT
   ${helpers.getDate()},
   ${helpers.getEventDatetime()},
+  TIMESTAMP_MICROS(event_timestamp) event_timestamp_utc,
   FARM_FINGERPRINT(
   CONCAT(
     s.session_id,
@@ -23,8 +24,8 @@ SELECT
   event_name,
   ${helpers.getEventParam('currency', 'string', true)},
   STRUCT(e.ecommerce.transaction_id) ecommerce,
-  ${when(constants.EVENT_PARAMS.length),
-  helpers.getEventParams(constants.EVENT_PARAMS) + ','}
+  ${when(constants.EVENT_PARAMS.length,
+  helpers.getEventParams(constants.EVENT_PARAMS) + ',')}
   s.* EXCEPT(date, session_id),
   STRUCT (
     i.item_id,
@@ -60,7 +61,7 @@ LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.ses
 CROSS JOIN UNNEST(items) AS i
 WHERE
   ${ when(incremental(),
-  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
   _TABLE_SUFFIX NOT LIKE "intraday%"

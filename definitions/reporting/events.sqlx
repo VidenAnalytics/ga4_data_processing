@@ -9,12 +9,13 @@ config {
 }
 
 pre_operations {
-    ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
+    ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
 }
 
 SELECT
   ${helpers.getDate()},
   ${helpers.getEventDatetime()},
+  TIMESTAMP_MICROS(event_timestamp) event_timestamp_utc,
   FARM_FINGERPRINT(
   CONCAT(
     s.session_id,
@@ -22,8 +23,8 @@ SELECT
     event_name
   )) event_id,
   event_name,
-  ${when(constants.EVENT_PARAMS.length),
-  helpers.getEventParams(constants.EVENT_PARAMS) + ','}
+  ${when(constants.EVENT_PARAMS.length,
+  helpers.getEventParams(constants.EVENT_PARAMS) + ',')}
   COALESCE(
     CAST(${helpers.getEventParam('value', 'int', false)} AS FLOAT64),
     CAST(${helpers.getEventParam('value', 'float', false)} AS FLOAT64),
@@ -37,7 +38,7 @@ FROM
 LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
 WHERE
   ${ when(incremental(),
-  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(${constants.TIME_ZONE}), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
+  `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
   _TABLE_SUFFIX NOT LIKE "intraday%"

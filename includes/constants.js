@@ -4,8 +4,8 @@ const GA4_DATASCHEMA = '<GA4_DATASCHEMA>';
 // Table prefix. By default = 'events_*'
 const GA4_TABLE_PREFIX = '<GA4_TABLE_PREFIX>';
 
-// Start Date (included), By Default = null, means from the firt export date. Example = `'2023-07-05'`
-const START_DATE = `'<START_DATE>'`;
+// Start Date (included), By Default = null, means from the firt export date. Example = "'2023-07-05'" or null
+const START_DATE = '<START_DATE>';
 
 
 // Destination dataset. By default = 'analytics_processed_data_{GA_PROPERTY_ID}'
@@ -22,8 +22,8 @@ const REFRESH_LOOKBACK_WINDOW = 3;
 const ATTRIBUTION_LOOKBACK_WINDOW = 30;
 
 
-// Project time zone. Example: const TIME_ZONE = `'America/Los_Angeles'`;
-const TIME_ZONE = `'<TIME_ZONE>'`;
+// Project time zone. Example: const TIME_ZONE = 'America/Los_Angeles';
+const TIME_ZONE = '<TIME_ZONE>';
 
 
 
