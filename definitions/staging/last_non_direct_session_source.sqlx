@@ -12,7 +12,7 @@ config {
 pre_operations {
   ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
 }
-
+WITH stage1 AS (
 SELECT * FROM (
   SELECT
     date,
@@ -35,3 +35,118 @@ SELECT * FROM (
   ${ when(incremental(), `WHERE date >= DATE_SUB(DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY), INTERVAL (${constants.ATTRIBUTION_LOOKBACK_WINDOW} + 2) DAY)`)}
 )
 ${ when(incremental(), `WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}
+)
+SELECT
+ * EXCEPT(session_first_traffic_source, session_last_traffic_source, session_traffic_source_last_non_direct),
+  --session_first_traffic_source
+  STRUCT(
+    IF(COALESCE(
+        session_first_traffic_source.source,
+        session_first_traffic_source.medium,
+        session_first_traffic_source.campaign,
+        session_first_traffic_source.campaign_id,
+        session_first_traffic_source.content,
+        session_first_traffic_source.term
+        ) IS NULL,
+        "(direct) / (none)",
+        CONCAT(session_first_traffic_source.source, " / ", session_first_traffic_source.medium)) AS source_medium,
+    IF(COALESCE(
+        session_first_traffic_source.source,
+        session_first_traffic_source.medium,
+        session_first_traffic_source.campaign,
+        session_first_traffic_source.campaign_id,
+        session_first_traffic_source.content,
+        session_first_traffic_source.term
+        ) IS NULL,
+        "(direct)",
+        session_first_traffic_source.source) AS source,
+    IF(COALESCE(
+        session_first_traffic_source.source,
+        session_first_traffic_source.medium,
+        session_first_traffic_source.campaign,
+        session_first_traffic_source.campaign_id,
+        session_first_traffic_source.content,
+        session_first_traffic_source.term
+        ) IS NULL,
+        "(none)",
+        session_first_traffic_source.medium) AS medium,    
+    IFNULL(session_first_traffic_source.campaign, "(not set)") AS campaign,
+    IFNULL(session_first_traffic_source.campaign_id, "(not set)") AS campaign_id,
+    IFNULL(session_first_traffic_source.content, "(not set)") AS content,
+    IFNULL(session_first_traffic_source.term, "(not set)") AS term
+  ) AS session_first_traffic_source,
+  -- session_last_traffic_source
+  STRUCT(
+    IF(COALESCE(
+        session_last_traffic_source.source,
+        session_last_traffic_source.medium,
+        session_last_traffic_source.campaign,
+        session_last_traffic_source.campaign_id,
+        session_last_traffic_source.content,
+        session_last_traffic_source.term
+        ) IS NULL,
+        "(direct) / (none)",
+        CONCAT(session_last_traffic_source.source, " / ", session_last_traffic_source.medium)) AS source_medium,
+    IF(COALESCE(
+        session_last_traffic_source.source,
+        session_last_traffic_source.medium,
+        session_last_traffic_source.campaign,
+        session_last_traffic_source.campaign_id,
+        session_last_traffic_source.content,
+        session_last_traffic_source.term
+        ) IS NULL,
+        "(direct)",
+        session_last_traffic_source.source) AS source,
+    IF(COALESCE(
+        session_last_traffic_source.source,
+        session_last_traffic_source.medium,
+        session_last_traffic_source.campaign,
+        session_last_traffic_source.campaign_id,
+        session_last_traffic_source.content,
+        session_last_traffic_source.term
+        ) IS NULL,
+        "(none)",
+        session_last_traffic_source.medium) AS medium,    
+    IFNULL(session_last_traffic_source.campaign, "(not set)") AS campaign,
+    IFNULL(session_last_traffic_source.campaign_id, "(not set)") AS campaign_id,
+    IFNULL(session_last_traffic_source.content, "(not set)") AS content,
+    IFNULL(session_last_traffic_source.term, "(not set)") AS term
+  ) AS session_last_traffic_source,
+  -- session_traffic_source_last_non_direct
+    STRUCT(
+    IF(COALESCE(
+        session_traffic_source_last_non_direct.source,
+        session_traffic_source_last_non_direct.medium,
+        session_traffic_source_last_non_direct.campaign,
+        session_traffic_source_last_non_direct.campaign_id,
+        session_traffic_source_last_non_direct.content,
+        session_traffic_source_last_non_direct.term
+        ) IS NULL,
+        "(direct) / (none)",
+        CONCAT(session_traffic_source_last_non_direct.source, " / ", session_traffic_source_last_non_direct.medium)) AS source_medium,
+    IF(COALESCE(
+        session_traffic_source_last_non_direct.source,
+        session_traffic_source_last_non_direct.medium,
+        session_traffic_source_last_non_direct.campaign,
+        session_traffic_source_last_non_direct.campaign_id,
+        session_traffic_source_last_non_direct.content,
+        session_traffic_source_last_non_direct.term
+        ) IS NULL,
+        "(direct)",
+        session_traffic_source_last_non_direct.source) AS source,
+    IF(COALESCE(
+        session_traffic_source_last_non_direct.source,
+        session_traffic_source_last_non_direct.medium,
+        session_traffic_source_last_non_direct.campaign,
+        session_traffic_source_last_non_direct.campaign_id,
+        session_traffic_source_last_non_direct.content,
+        session_traffic_source_last_non_direct.term
+        ) IS NULL,
+        "(none)",
+        session_traffic_source_last_non_direct.medium) AS medium,    
+    IFNULL(session_traffic_source_last_non_direct.campaign, "(not set)") AS campaign,
+    IFNULL(session_traffic_source_last_non_direct.campaign_id, "(not set)") AS campaign_id,
+    IFNULL(session_traffic_source_last_non_direct.content, "(not set)") AS content,
+    IFNULL(session_traffic_source_last_non_direct.term, "(not set)") AS term
+  ) AS session_traffic_source_last_non_direct
+FROM stage1

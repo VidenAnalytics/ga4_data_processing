@@ -97,12 +97,8 @@ events AS (
   SELECT
   date, session_id, user_pseudo_id, session_start, event_timestamp, session_engaged,
   STRUCT(
-    IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(direct)", traffic_source.source) AS source,
-    IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(none)", traffic_source.medium) AS medium,
-    CONCAT(
-      IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(direct)", traffic_source.source), " / ",
-      IF(COALESCE(traffic_source.source, traffic_source.medium, traffic_source.campaign, traffic_source.campaign_id, traffic_source.content, traffic_source.term) IS NULL, "(none)", traffic_source.medium)
-    ) AS source_medium,
+    traffic_source.source,
+    traffic_source.medium,
     traffic_source.campaign, 
     traffic_source.campaign_id, 
     traffic_source.content,
@@ -122,7 +118,6 @@ SELECT
       COALESCE(
         traffic_source.source,
         traffic_source.medium,
-        traffic_source.source_medium,
         traffic_source.campaign,
         traffic_source.campaign_id,
         traffic_source.content,
@@ -142,7 +137,6 @@ SELECT
       COALESCE(
         traffic_source.source,
         traffic_source.medium,
-        traffic_source.source_medium,
         traffic_source.campaign,
         traffic_source.campaign_id,
         traffic_source.content,
