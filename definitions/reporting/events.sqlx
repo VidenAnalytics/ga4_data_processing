@@ -35,7 +35,9 @@ SELECT
    s.* EXCEPT(date)
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
-LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+LEFT JOIN
+  ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+  AND PARSE_DATE('%Y%m%d', e.event_date) = s.date
 WHERE
   ${ when(incremental(),
   `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,

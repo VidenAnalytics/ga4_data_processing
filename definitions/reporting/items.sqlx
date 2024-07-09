@@ -26,7 +26,7 @@ SELECT
   STRUCT(e.ecommerce.transaction_id) ecommerce,
   ${when(constants.EVENT_PARAMS.length,
   helpers.getEventParams(constants.EVENT_PARAMS) + ',')}
-  s.* EXCEPT(date, session_id),
+  s.* EXCEPT(date),
   STRUCT (
     i.item_id,
     i.item_name,
@@ -57,7 +57,9 @@ SELECT
   ) AS items
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
-LEFT JOIN ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+LEFT JOIN
+  ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+  AND PARSE_DATE('%Y%m%d', e.event_date) = s.date
 CROSS JOIN UNNEST(items) AS i
 WHERE
   ${ when(incremental(),
