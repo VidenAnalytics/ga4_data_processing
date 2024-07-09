@@ -31,6 +31,8 @@ SELECT
     CAST(${helpers.getEventParam('value', 'double', false)} AS FLOAT64)
   ) AS value,
   ${helpers.getEventParam('currency', 'string', true)},
+  ${helpers.getEventParam('page_location', 'string', true)},
+  SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   e.ecommerce,
    s.* EXCEPT(date)
 FROM

@@ -23,6 +23,8 @@ SELECT
   )) event_id,
   event_name,
   ${helpers.getEventParam('currency', 'string', true)},
+  ${helpers.getEventParam('page_location', 'string', true)},
+  SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   STRUCT(e.ecommerce.transaction_id) ecommerce,
   ${when(constants.EVENT_PARAMS.length,
   helpers.getEventParams(constants.EVENT_PARAMS) + ',')}
