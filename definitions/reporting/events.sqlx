@@ -34,7 +34,9 @@ SELECT
   ${helpers.getEventParam('page_location', 'string', true)},
   SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   e.ecommerce,
-   s.* EXCEPT(date)
+   s.* EXCEPT(date),
+   ROW_NUMBER() OVER (PARTITION BY s.session_id, event_name ORDER BY TIMESTAMP_MICROS(event_timestamp) ASC) event_seq_num,
+   ROW_NUMBER() OVER (PARTITION BY s.session_id, event_name ORDER BY TIMESTAMP_MICROS(event_timestamp) DESC) event_seq_num_reverted
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
 LEFT JOIN

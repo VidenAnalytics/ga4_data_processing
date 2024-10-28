@@ -63,6 +63,7 @@ WHERE
   )}
     _TABLE_SUFFIX NOT LIKE "intraday%"
     AND event_name NOT IN ('session_start', 'first_visit')
+    AND user_pseudo_id IS NOT NULL
 ),
 stage_2 AS (
 SELECT 
