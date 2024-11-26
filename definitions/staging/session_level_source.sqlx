@@ -112,6 +112,7 @@ SELECT
   session_id,
   user_pseudo_id,
   session_start,
+  MAX(session_engaged) AS session_engaged,
   -- the traffic source of the first event in the session with session_start and first_visit excluded
   ARRAY_AGG(
     IF(

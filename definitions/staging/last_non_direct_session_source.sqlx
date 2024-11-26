@@ -19,6 +19,7 @@ SELECT * FROM (
     session_id,
     user_pseudo_id,
     session_start,
+    session_engaged,
     session_first_traffic_source,
     session_last_traffic_source,
     IFNULL(
