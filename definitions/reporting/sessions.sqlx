@@ -142,7 +142,7 @@ SELECT
   s3.exit_page_without_query_string,
   s3.stream_id,
   s3.platform,
-  s3.hostname
+  s3.hostname,
   STRUCT(
     s3.geo_city AS city,
     s3.geo_country AS country,
