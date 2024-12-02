@@ -22,16 +22,17 @@ const REFRESH_LOOKBACK_WINDOW = 3;
 const ATTRIBUTION_LOOKBACK_WINDOW = 30;
 
 
-// Project time zone. Example: const TIME_ZONE = 'America/Los_Angeles';
+// Project time zone. Default = 'America/Los_Angeles';
 const TIME_ZONE = '<TIME_ZONE>';
 
 
 
 // Should be empty list if not event params should be pulled.
 EVENT_PARAMS = [
-    // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
-    // {'name': 'event_action', 'type': 'string'},
-    // {'name': 'event_label', 'type': 'string'},
+    // included event_category/action/label by default.
+    {'name': 'event_category', 'type': 'string', 'columnName':'event_category'},
+    {'name': 'event_action', 'type': 'string'},
+    {'name': 'event_label', 'type': 'string'},
 ]
 
 

@@ -11,6 +11,12 @@ pre_operations {
     ${ when(incremental(), `DELETE FROM ${self()} WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY);`)}
 }
 
+WITH sessions AS (
+  SELECT * FROM ${ref('sessions')}
+  ${ when(incremental(),
+  `WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)
+  }
+)
 SELECT
   ${helpers.getDate()},
   ${helpers.getEventDatetime()},
@@ -60,7 +66,7 @@ SELECT
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
 LEFT JOIN
-  ${ref('sessions')} AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
+  sessions AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
   AND PARSE_DATE('%Y%m%d', e.event_date) = s.date
 CROSS JOIN UNNEST(items) AS i
 WHERE

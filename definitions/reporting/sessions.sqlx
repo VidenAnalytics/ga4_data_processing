@@ -78,8 +78,9 @@ SELECT
   engagement_time_msec,
   stream_id,
   platform,
-  FIRST_VALUE(page_view_location IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) landing_page,
-  LAST_VALUE(page_view_location IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) exit_page,
+  hostname,
+  IFNULL(FIRST_VALUE(IF(event_name IN ('page_view', 'screen_view'), page_view_location, NULL) IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), '(not set)') landing_page,
+  IFNULL(LAST_VALUE(IF(event_name IN ('page_view', 'screen_view'), page_view_location, NULL) IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), '(not set)') exit_page,
   FIRST_VALUE(device) OVER (_window) device,
   FIRST_VALUE(geo) OVER (_window) geo,
   FIRST_VALUE(first_user) OVER (_window) first_user
@@ -105,6 +106,7 @@ SELECT
   SPLIT(exit_page, "?")[SAFE_OFFSET(0)] exit_page_without_query_string,
   stream_id,
   platform,
+  hostname,
   geo.city AS geo_city,
   geo.country AS geo_country,
   geo.continent AS geo_continent,
@@ -140,6 +142,7 @@ SELECT
   s3.exit_page_without_query_string,
   s3.stream_id,
   s3.platform,
+  s3.hostname
   STRUCT(
     s3.geo_city AS city,
     s3.geo_country AS country,
