@@ -1,6 +1,6 @@
 function getEventParam(eventParamName, eventParamType = "string", asColumn = true, columnName = null) {
   let eventParamTypeName = "";
-  switch (eventParamName) {
+  switch (eventParamType) {
     case "string":
       exprression = "ep.value.string_value";
       break;
