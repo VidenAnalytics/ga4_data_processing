@@ -74,9 +74,9 @@ SELECT
     i.promotion_id,
     i.promotion_name,
     i.creative_name,
-    i.creative_slot,
+    i.creative_slot
     ${when(constants.ITEM_PARAMS.length,
-    `STRUCT(${helpers.getItemParams(constants.ITEM_PARAMS)}) AS item_custom_params`
+    `, STRUCT(${helpers.getItemParams(constants.ITEM_PARAMS)}) AS item_custom_params`
     )}
   ) AS items,
   ${when(constants.ADD_RATES, `rates.rates,`)}
