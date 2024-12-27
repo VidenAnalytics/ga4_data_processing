@@ -41,6 +41,7 @@ CREATE TEMPORARY TABLE temp_new_events AS
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
     _TABLE_SUFFIX NOT LIKE "intraday%"
+    AND _TABLE_SUFFIX NOT LIKE "fresh%"
     -- AND event_name NOT IN ('session_start', 'first_visit')
     AND _TABLE_SUFFIX >= "20240101";
 
@@ -72,6 +73,7 @@ CREATE TEMPORARY TABLE temp_legacy_events AS
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
     _TABLE_SUFFIX NOT LIKE "intraday%"
+    AND _TABLE_SUFFIX NOT LIKE "fresh%"
     AND event_name NOT IN ('session_start', 'first_visit')
     AND _TABLE_SUFFIX < "20240101";
 

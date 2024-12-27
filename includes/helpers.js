@@ -1,5 +1,4 @@
 function getEventParam(eventParamName, eventParamType = "string", asColumn = true, columnName = null) {
-  let eventParamTypeName = "";
   switch (eventParamType) {
     case "string":
       exprression = "ep.value.string_value";
@@ -36,7 +35,6 @@ function getEventParams(list) {
   */
   let output = []
   for (let elem of list) {
-    let eventParamTypeName = "";
     switch (elem.type) {
       case "string":
         exprression = "ep.value.string_value";
@@ -64,6 +62,44 @@ function getEventParams(list) {
     let aliasClause = (elem.asColumn ? elem.asColumn : true) ? ` AS ${alias}` : ""; // Apply the alias only if asColumn is true
 
     output.push(`(SELECT ${exprression} AS value FROM UNNEST(event_params) ep WHERE ep.key = '${elem.name}')${aliasClause}`);
+  }
+  return output.join(',\n')
+};
+
+
+function getItemParams(list) {
+  /* 
+  [{'name': 'ep_name', 'type': 'string', 'asColumn': true, 'columnName':'test'}]
+  */
+  let output = []
+  for (let elem of list) {
+    switch (elem.type) {
+      case "string":
+        exprression = "ep.value.string_value";
+        break;
+      case "int":
+        exprression = "ep.value.int_value";
+        break;
+      case "double":
+        exprression = "ep.value.double_value";
+        break;
+      case "float":
+        exprression = "ep.value.float_value";
+        break;
+      case "all_as_string":
+        exprression = "COALESCE(ep.value.string_value, SAFE_CAST(ep.value.double_value AS STRING), SAFE_CAST(ep.value.float_value AS STRING), SAFE_CAST(ep.value.int_value AS STRING))";
+        break;
+      case "all_as_number":
+        exprression = "COALESCE(SAFE_CAST(ep.value.string_value AS FLOAT64), ep.value.double_value, ep.value.float_value, SAFE_CAST(ep.value.int_value AS FLOAT64))";
+        break;
+      default:
+        throw "eventParamType is not valid"; // Corrected the error message
+    }
+
+    let alias = elem.columnName || elem.name;         // Determine the correct alias for the column
+    let aliasClause = (elem.asColumn ? elem.asColumn : true) ? ` AS ${alias}` : ""; // Apply the alias only if asColumn is true
+
+    output.push(`(SELECT ${exprression} AS value FROM UNNEST(item_params) ep WHERE ep.key = '${elem.name}')${aliasClause}`);
   }
   return output.join(',\n')
 };

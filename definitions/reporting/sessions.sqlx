@@ -46,7 +46,6 @@ SELECT
     device.web_info.browser,
     device.web_info.browser_version
   ) AS device,
-  device.web_info.hostname,
   STRUCT(
     traffic_source.source,
     traffic_source.medium,
@@ -62,6 +61,7 @@ WHERE
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
     _TABLE_SUFFIX NOT LIKE "intraday%"
+    AND _TABLE_SUFFIX NOT LIKE "fresh%"
     AND event_name NOT IN ('session_start', 'first_visit')
     AND user_pseudo_id IS NOT NULL
 ),
@@ -78,7 +78,7 @@ SELECT
   engagement_time_msec,
   stream_id,
   platform,
-  hostname,
+  
   IFNULL(FIRST_VALUE(IF(event_name IN ('page_view', 'screen_view'), page_view_location, NULL) IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), '(not set)') landing_page,
   IFNULL(LAST_VALUE(IF(event_name IN ('page_view', 'screen_view'), page_view_location, NULL) IGNORE NULLS) OVER (_window ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), '(not set)') exit_page,
   FIRST_VALUE(device) OVER (_window) device,
@@ -106,7 +106,6 @@ SELECT
   SPLIT(exit_page, "?")[SAFE_OFFSET(0)] exit_page_without_query_string,
   stream_id,
   platform,
-  hostname,
   geo.city AS geo_city,
   geo.country AS geo_country,
   geo.continent AS geo_continent,
@@ -142,7 +141,6 @@ SELECT
   s3.exit_page_without_query_string,
   s3.stream_id,
   s3.platform,
-  s3.hostname,
   STRUCT(
     s3.geo_city AS city,
     s3.geo_country AS country,

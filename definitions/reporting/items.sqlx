@@ -17,6 +17,18 @@ WITH sessions AS (
   `WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)
   }
 )
+${ when(constants.ADD_RATES,
+`, rates AS (
+  SELECT
+    date,
+    STRUCT(
+      rates.EUR,
+      rates.GBP,
+      rates.CHF
+    ) AS rates
+  FROM \`videnglobe.utilities.currency_rates\`
+  ${when(incremental(), `WHERE date >= DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)`)}
+)`)}
 SELECT
   ${helpers.getDate()},
   ${helpers.getEventDatetime()},
@@ -33,7 +45,8 @@ SELECT
   SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   STRUCT(e.ecommerce.transaction_id) ecommerce,
   ${when(constants.EVENT_PARAMS.length,
-  helpers.getEventParams(constants.EVENT_PARAMS) + ',')}
+    `STRUCT(${helpers.getEventParams(constants.EVENT_PARAMS)}) AS event_params,`
+    )}
   s.* EXCEPT(date),
   STRUCT (
     i.item_id,
@@ -61,20 +74,26 @@ SELECT
     i.promotion_id,
     i.promotion_name,
     i.creative_name,
-    i.creative_slot
-  ) AS items
+    i.creative_slot,
+    ${when(constants.ITEM_PARAMS.length,
+    `STRUCT(${helpers.getItemParams(constants.ITEM_PARAMS)}) AS item_custom_params`
+    )}
+  ) AS items,
+  ${when(constants.ADD_RATES, `rates.rates,`)}
 FROM
   `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}` AS e
 LEFT JOIN
   sessions AS s ON ${helpers.getSessionId(false, "e")} = s.session_id
   AND PARSE_DATE('%Y%m%d', e.event_date) = s.date
 CROSS JOIN UNNEST(items) AS i
+${when(constants.ADD_RATES, `LEFT JOIN rates ON PARSE_DATE('%Y%m%d', e.event_date) = rates.date `)}
 WHERE
   ${ when(incremental(),
   `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE('${constants.TIME_ZONE}'), INTERVAL ${constants.REFRESH_LOOKBACK_WINDOW} DAY)) AND`,
   when(constants.START_DATE, `_TABLE_SUFFIX >= FORMAT_DATE("%Y%m%d", DATE ${constants.START_DATE}) AND`)
   )}
   _TABLE_SUFFIX NOT LIKE "intraday%"
+  AND _TABLE_SUFFIX NOT LIKE "fresh%"
 AND event_name IN (
   "add_payment_info",
   "add_shipping_info",

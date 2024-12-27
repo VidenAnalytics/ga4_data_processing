@@ -25,14 +25,21 @@ const ATTRIBUTION_LOOKBACK_WINDOW = 30;
 // Project time zone. Default = 'America/Los_Angeles';
 const TIME_ZONE = '<TIME_ZONE>';
 
+const ADD_RATES = true;
 
 
 // Should be empty list if not event params should be pulled.
 EVENT_PARAMS = [
-    // included event_category/action/label by default.
+    // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
+    // enum ["string", "int", "double", "float", "all_as_string", "all_as_number"]
     {'name': 'event_category', 'type': 'string', 'columnName':'event_category'},
     {'name': 'event_action', 'type': 'string'},
     {'name': 'event_label', 'type': 'string'},
+]
+
+const ITEM_PARAMS = [
+    // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
+    // enum ["string", "int", "double", "float", "all_as_string", "all_as_number"]
 ]
 
 
@@ -44,5 +51,7 @@ module.exports = {
     GA4_PROCESSED_DATA_DATASCHEMA,
     ATTRIBUTION_LOOKBACK_WINDOW,
     EVENT_PARAMS,
+    ITEM_PARAMS,
     START_DATE,
+    ADD_RATES
 }
