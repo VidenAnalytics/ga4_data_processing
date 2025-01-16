@@ -41,7 +41,7 @@ SELECT
     event_name
   )) event_id,
   event_name,
-  device.web_info.hostname as hostname_of_event,
+  e.device.web_info.hostname as hostname_of_event,
   ${when(constants.EVENT_PARAMS.length,
     `STRUCT(${helpers.getEventParams(constants.EVENT_PARAMS)}) AS event_params,`
     )}
