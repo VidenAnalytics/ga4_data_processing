@@ -163,6 +163,7 @@ module.exports = {
   getEventParam,
   getDatsetFromTableName,
   getDateFromTableName,
+  getItemParams,
   getTableColumns,
   getTableColumnsUnnestEventParameters,
   getEventId,

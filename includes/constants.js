@@ -29,7 +29,7 @@ const ADD_RATES = true;
 
 
 // Should be empty list if not event params should be pulled.
-EVENT_PARAMS = [
+const EVENT_PARAMS = [
     // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
     // enum ["string", "int", "double", "float", "all_as_string", "all_as_number"]
     {'name': 'event_category', 'type': 'string', 'columnName':'event_category'},
