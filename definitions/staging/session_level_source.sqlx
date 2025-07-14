@@ -21,7 +21,7 @@ CREATE TEMPORARY TABLE temp_new_events AS
     -- unique session id
     ${helpers.getSessionId()},
     user_pseudo_id,
-    ${helpers.getEventParam('ga_session_id', 'int', true, 'session_start')},
+    ${helpers.getParam('event', 'ga_session_id', 'int', true, 'session_start')},
     -- wrap all traffic source dimensions into a struct for the next step
     (SELECT AS STRUCT              
       IF(COALESCE(collected_traffic_source.gclid, collected_traffic_source.dclid,collected_traffic_source.srsltid) IS NOT NULL, 'google', collected_traffic_source.manual_source) AS source,
@@ -32,7 +32,7 @@ CREATE TEMPORARY TABLE temp_new_events AS
       ${ref("DECODE_URI_COMPONENT")}(collected_traffic_source.manual_term) AS term
     ) AS traffic_source,
     event_timestamp,
-    COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged
+    COALESCE(CAST(${helpers.getParam('event', 'session_engaged', 'string', false)} AS INT64), ${helpers.getParam('event', 'session_engaged', 'int', false)}) AS session_engaged
   FROM
     `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}`
   WHERE
@@ -51,20 +51,20 @@ CREATE TEMPORARY TABLE temp_legacy_events AS
     -- unique session id
     ${helpers.getSessionId()},
     user_pseudo_id,
-    ${helpers.getEventParam('ga_session_id', 'int', true, 'session_start')},
+    ${helpers.getParam('event', 'ga_session_id', 'int', true, 'session_start')},
     -- wrap all traffic source dimensions into a struct for the next step
     (SELECT AS STRUCT
-          IF(REGEXP_CONTAINS(${helpers.getEventParam('page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'google',
-            ${helpers.getEventParam('source', 'string', false)}) AS source,
-          IF(REGEXP_CONTAINS(${helpers.getEventParam('page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'cpc',
-            ${helpers.getEventParam('medium', 'string', false)}) AS medium,
-          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('campaign', 'string', false)}) AS campaign,
-          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('campaign_id', 'string', false)}) AS campaign_id,
-          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('content', 'string', false)}) AS content,
-          ${ref("DECODE_URI_COMPONENT")}(${helpers.getEventParam('term', 'string', false)}) AS term)
+          IF(REGEXP_CONTAINS(${helpers.getParam('event', 'page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'google',
+            ${helpers.getParam('event', 'source', 'string', false)}) AS source,
+          IF(REGEXP_CONTAINS(${helpers.getParam('event', 'page_location', 'string', false)}, '(gbraid=)|(wbraid=)|(gclid=)'), 'cpc',
+            ${helpers.getParam('event', 'medium', 'string', false)}) AS medium,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getParam('event', 'campaign', 'string', false)}) AS campaign,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getParam('event', 'campaign_id', 'string', false)}) AS campaign_id,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getParam('event', 'content', 'string', false)}) AS content,
+          ${ref("DECODE_URI_COMPONENT")}(${helpers.getParam('event', 'term', 'string', false)}) AS term)
     AS traffic_source,
     event_timestamp,
-    COALESCE(CAST(${helpers.getEventParam('session_engaged', 'string', false)} AS INT64), ${helpers.getEventParam('session_engaged', 'int', false)}) AS session_engaged,
+    COALESCE(CAST(${helpers.getParam('event', 'session_engaged', 'string', false)} AS INT64), ${helpers.getParam('event', 'session_engaged', 'int', false)}) AS session_engaged,
   FROM
     `${dataform.projectConfig.defaultDatabase}.${constants.GA4_DATASCHEMA}.${constants.GA4_TABLE_PREFIX || "events_*"}`
   WHERE

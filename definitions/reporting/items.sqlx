@@ -40,12 +40,12 @@ SELECT
     event_name
   )) event_id,
   event_name,
-  ${helpers.getEventParam('currency', 'string', true)},
-  ${helpers.getEventParam('page_location', 'string', true)},
-  SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
+  ${helpers.getParam('event', 'currency', 'string', true)},
+  ${helpers.getParam('event', 'page_location', 'string', true)},
+  SPLIT(${helpers.getParam('event', 'page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   STRUCT(e.ecommerce.transaction_id) ecommerce,
   ${when(constants.EVENT_PARAMS.length,
-    `STRUCT(${helpers.getEventParams(constants.EVENT_PARAMS)}) AS event_params,`
+    `STRUCT(${helpers.getParams('event', constants.EVENT_PARAMS)}) AS event_params,`
     )}
   s.* EXCEPT(date),
   STRUCT (

@@ -1,5 +1,10 @@
-function getEventParam(eventParamName, eventParamType = "string", asColumn = true, columnName = null) {
-  switch (eventParamType) {
+function getParam(scope, paramName, paramType = "string", asColumn = true, columnName = null) {
+  if (scope !== "user" && scope !== "event") {
+    throw "scope must be either 'user' or 'event'";
+  }
+  let params_field = scope === "user" ? "user_properties" : "event_params";
+  // scope user or event
+  switch (paramType) {
     case "string":
       exprression = "ep.value.string_value";
       break;
@@ -22,17 +27,22 @@ function getEventParam(eventParamName, eventParamType = "string", asColumn = tru
       throw "eventParamType is not valid"; // Corrected the error message
   }
 
-  let alias = columnName || eventParamName;         // Determine the correct alias for the column
+  let alias = columnName || paramName;         // Determine the correct alias for the column
   let aliasClause = asColumn ? ` AS ${alias}` : ""; // Apply the alias only if asColumn is true
 
-  return `(SELECT ${exprression} FROM UNNEST(event_params) ep WHERE ep.key = '${eventParamName}')${aliasClause}`;
+  return `(SELECT ${exprression} FROM UNNEST(${params_field}) ep WHERE ep.key = '${paramName}')${aliasClause}`;
 };
 
 
-function getEventParams(list) {
+function getParams(scope, list) {
   /* 
   [{'name': 'ep_name', 'type': 'string', 'asColumn': true, 'columnName':'test'}]
   */
+  if (scope !== "user" && scope !== "event") {
+    throw "scope must be either 'user' or 'event'";
+  }
+  
+  let params_field = scope === "user" ? "user_properties" : "event_params";
   let output = []
   for (let elem of list) {
     switch (elem.type) {
@@ -61,7 +71,7 @@ function getEventParams(list) {
     let alias = elem.columnName || elem.name;         // Determine the correct alias for the column
     let aliasClause = (elem.asColumn ? elem.asColumn : true) ? ` AS ${alias}` : ""; // Apply the alias only if asColumn is true
 
-    output.push(`(SELECT ${exprression} AS value FROM UNNEST(event_params) ep WHERE ep.key = '${elem.name}')${aliasClause}`);
+    output.push(`(SELECT ${exprression} AS value FROM UNNEST(${params_field}) ep WHERE ep.key = '${elem.name}')${aliasClause}`);
   }
   return output.join(',\n')
 };
@@ -159,8 +169,8 @@ const getDefaultChannelGroup = () => `CASE
 
 
 module.exports = {
-  getEventParams,
-  getEventParam,
+  getParams,
+  getParam,
   getDatsetFromTableName,
   getDateFromTableName,
   getItemParams,

@@ -43,16 +43,19 @@ SELECT
   event_name,
   e.device.web_info.hostname as hostname_of_event,
   ${when(constants.EVENT_PARAMS.length,
-    `STRUCT(${helpers.getEventParams(constants.EVENT_PARAMS)}) AS event_params,`
+    `STRUCT(${helpers.getParams('event', constants.EVENT_PARAMS)}) AS event_params,`
+    )}
+  ${when(constants.USER_PROPERTIES.length,
+    `STRUCT(${helpers.getParams('user', constants.USER_PROPERTIES)}) AS user_properties,`
     )}
   COALESCE(
-    CAST(${helpers.getEventParam('value', 'int', false)} AS FLOAT64),
-    CAST(${helpers.getEventParam('value', 'float', false)} AS FLOAT64),
-    CAST(${helpers.getEventParam('value', 'double', false)} AS FLOAT64)
+    CAST(${helpers.getParam('event', 'value', 'int', false)} AS FLOAT64),
+    CAST(${helpers.getParam('event', 'value', 'float', false)} AS FLOAT64),
+    CAST(${helpers.getParam('event', 'value', 'double', false)} AS FLOAT64)
   ) AS value,
-  ${helpers.getEventParam('currency', 'string', true)},
-  ${helpers.getEventParam('page_location', 'string', true)},
-  SPLIT(${helpers.getEventParam('page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
+  ${helpers.getParam('event', 'currency', 'string', true)},
+  ${helpers.getParam('event', 'page_location', 'string', true)},
+  SPLIT(${helpers.getParam('event', 'page_location', 'string', false)}, "?")[SAFE_OFFSET(0)] page_location_without_query_string,
   e.ecommerce,
   s.* EXCEPT(date),
   ${when(constants.ADD_RATES, `rates.rates,`)}

@@ -36,6 +36,15 @@ const EVENT_PARAMS = [
     {'name': 'event_action', 'type': 'string'},
     {'name': 'event_label', 'type': 'string'},
 ]
+EVENT_PARAMS.forEach(param => param.scope = 'event')
+
+const USER_PROPERTIES = [
+    // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
+    // enum ["string", "int", "double", "float", "all_as_string", "all_as_number"]
+    // EXAMPLE. Comment or update before running:
+    {'name': 'src', 'type': 'all_as_string', 'columnName':'src'},
+]
+USER_PROPERTIES.forEach(param => param.scope = 'user')
 
 const ITEM_PARAMS = [
     // {'name': 'event_category', 'type': 'string', 'columnName':'test'},
@@ -51,6 +60,7 @@ module.exports = {
     GA4_PROCESSED_DATA_DATASCHEMA,
     ATTRIBUTION_LOOKBACK_WINDOW,
     EVENT_PARAMS,
+    USER_PROPERTIES,
     ITEM_PARAMS,
     START_DATE,
     ADD_RATES

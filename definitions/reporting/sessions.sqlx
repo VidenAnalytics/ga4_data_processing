@@ -20,16 +20,16 @@ pre_operations {
 WITH stage_1 AS (
 SELECT
   PARSE_DATE("%Y%m%d", event_date) AS date,
-  CONCAT(user_pseudo_id, '-', IFNULL(${helpers.getEventParam('ga_session_id', 'int', false)}, 0)) AS session_id,
+  CONCAT(user_pseudo_id, '-', IFNULL(${helpers.getParam('event', 'ga_session_id', 'int', false)}, 0)) AS session_id,
   user_pseudo_id,
   event_name,
   event_timestamp,
-  ${helpers.getEventParam('ga_session_number', 'int', true)},
-  ${helpers.getEventParam('engagement_time_msec', 'int', true)},
+  ${helpers.getParam('event', 'ga_session_number', 'int', true)},
+  ${helpers.getParam('event', 'engagement_time_msec', 'int', true)},
   is_active_user,
   IF(event_name='user_engagement', 1, 0) user_engagement,
-  -- ${helpers.getEventParam('session_engaged', 'string', true)},
-  IF(event_name='page_view', ${helpers.getEventParam('page_location', 'string', false)}, null) page_view_location,
+  -- ${helpers.getParam('event', 'session_engaged', 'string', true)},
+  IF(event_name='page_view', ${helpers.getParam('event', 'page_location', 'string', false)}, null) page_view_location,
   STRUCT(
     geo.city,
     geo.country,
